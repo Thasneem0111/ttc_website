@@ -37,5 +37,25 @@ document.addEventListener('DOMContentLoaded', function(){
 	};
 	window.addEventListener('scroll', onScroll, {passive:true});
 	onScroll();
+
+
+	// Reveal items (service cards and features) into view using IntersectionObserver
+	const revealItems = document.querySelectorAll('.service-card, .feature');
+	if(revealItems.length && 'IntersectionObserver' in window){
+		const obs = new IntersectionObserver((entries, observer)=>{
+			entries.forEach(entry=>{
+				if(entry.isIntersecting){
+					entry.target.classList.add('in-view');
+					observer.unobserve(entry.target);
+				}
+			});
+		},{root:null,rootMargin:'0px 0px -10% 0px',threshold:0.12});
+
+		revealItems.forEach((el, i)=>{
+			// subtle stagger
+			el.style.transitionDelay = (i * 60) + 'ms';
+			obs.observe(el);
+		});
+	}
 });
 
