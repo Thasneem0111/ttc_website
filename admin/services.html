@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<title>TTC - Admin Services</title>
+	<link rel="stylesheet" href="../styles.css">
+	<style>
+		/* copy of admin dashboard layout styles (sidebar + main) */
+		.admin-shell{display:flex;min-height:100vh}
+		.sidebar{width:260px;background:linear-gradient(180deg,#313131,#1a1a1a);color:#fff;padding:28px 18px;display:flex;flex-direction:column;justify-content:flex-start}
+		.sidebar .sidebar-brand{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center}
+		.logo-circle img{max-width:110px;max-height:110px;display:block}
+		.logo-fallback{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:800;letter-spacing:0.6px}
+		.brand-name{font-weight:800;font-size:14px;margin-top:6px;color:rgba(255,255,255,0.95)}
+		.sidebar-nav{display:flex;flex-direction:column;margin-top:32px;gap:8px;align-items:stretch;width:100%}
+		.sb-btn{background:transparent;border:none;color:inherit;padding:12px 14px;border-radius:8px;text-align:left;font-weight:700;cursor:pointer;transition:background .18s,transform .12s;width:100%}
+		.sb-btn:hover{background:rgba(255, 255, 255, 0.06);transform:translateX(4px)}
+		.sb-btn.active{background:rgba(255,255,255,0.12)}
+		.sidebar-bottom{margin-top:auto}
+		.sb-btn.logout{margin-top:6px;background:transparent;border-top:1px solid rgba(255,255,255,0.06);padding-top:16px}
+
+		.admin-main{flex:1;padding:28px 34px;background-color:whitesmoke}
+		.admin-header h1{margin:0 0 18px 0;font-size:28px;color:#000000}
+
+		/* services card (adapted to admin look) */
+		.card{background:#fff;border-radius:12px;padding:20px;box-shadow:0 8px 30px rgba(4,20,20,0.04)}
+		.panel-top{display:flex;gap:16px;align-items:center;margin-bottom:18px}
+		.count{background:#595959;padding:10px 16px;border-radius:8px;font-weight:700}
+		.search{flex:1;display:flex}
+		.search input{flex:1;padding:12px 16px;border-radius:8px;border:1px solid #eef3f3;background:#fbfcfc}
+		.services-list{margin-top:12px;border-top:1px solid #f0f3f3}
+		.service-item{display:flex;align-items:center;justify-content:space-between;padding:18px 8px;border-bottom:1px solid #f2f2f2}
+		.service-left{display:flex;align-items:center;gap:14px}
+		.service-title{font-weight:800;color:#083233}
+		.service-meta{color:#6d7a78}
+		.actions{display:flex;gap:12px;align-items:center}
+		.trash-btn{background:transparent;border:none;cursor:pointer;color:#333;padding:6px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;transition:background .12s}
+		.trash-btn svg{stroke:#6b6b6b}
+		.trash-btn:hover{background:rgba(31,170,161,0.06)}
+		.trash-btn:hover svg{stroke:var(--accent)}
+		.btn{background:#1faaa1;color:#fff;padding:12px 22px;border-radius:28px;border:none;cursor:pointer}
+		.btn.secondary{background:#2d9a95}
+		.icon-btn{background:transparent;border:none;cursor:pointer;color:#222}
+		.right-actions{display:flex;gap:16px;align-items:center;margin-top:22px;justify-content:flex-end}
+
+		@media (max-width:900px){
+			.sidebar{display:none}
+			.admin-shell{padding-left:12px;padding-right:12px}
+		}
+	</style>
+</head>
+<body>
+	<div class="admin-shell">
+		<aside class="sidebar">
+			<div class="sidebar-top">
+				<div class="sidebar-brand">
+					<div class="logo-circle">
+						<img src="../images/TTClogo.png" alt="TTC logo" onerror="this.style.display='none'">
+					</div>
+					<div class="brand-name">Turnkey Trading &amp; Contracting</div>
+				</div>
+			</div>
+
+			<nav class="sidebar-nav">
+				<button class="sb-btn" onclick="location.href='dashboard.html'">Dashboard</button>
+				<button class="sb-btn" onclick="location.href='requests.html'">Requests</button>
+				<button class="sb-btn" onclick="location.href='projects.html'">Projects</button>
+				<button class="sb-btn active" onclick="location.href='services.html'">Services</button>
+			</nav>
+
+			<div class="sidebar-bottom">
+				<button class="sb-btn">Settings</button>
+				<button class="sb-btn logout">Logout</button>
+			</div>
+		</aside>
+
+		<main class="admin-main">
+			<header class="admin-header">
+				<h1>Services</h1>
+			</header>
+
+			<section class="card" id="servicesCard">
+				<div class="panel-top">
+					<div class="count">Total Services <span id="totalCount" style="margin-left:8px">0</span></div>
+					<div class="search">
+						<input id="searchInput" placeholder="Search" />
+						<button id="searchBtn" class="icon-btn" title="Search"></button>
+					</div>
+				</div>
+
+				<div class="services-list" id="servicesList">
+					<!-- Services rendered here -->
+				</div>
+
+				<div class="right-actions">
+					<button id="updateBtn" class="btn secondary">Update Services</button>
+					<button id="addBtn" class="btn"> Add new service</button>
+				</div>
+			</section>
+		</main>
+	</div>
+
+	<script src="../script.js"></script>
+	<script>
+		// Basic client-side storage and CRUD behavior (localStorage)
+		const STORAGE_KEY = 'ttc_services_v1'
+		const defaultServices = [
+			{id:1,title:'Email Marketing',date:'11/6/2025'},
+			{id:2,title:'GMB Optimization Service',date:'11/6/2025'},
+			{id:3,title:'GMB Reinstatement Service',date:'11/6/2025'},
+			{id:4,title:'Landing Page Design',date:'11/5/2025'}
+		]
+
+		function loadServices(){
+			const raw = localStorage.getItem(STORAGE_KEY)
+			if(!raw) { localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultServices)); return defaultServices }
+			try{ return JSON.parse(raw) }catch(e){ return defaultServices }
+		}
+		function saveServices(list){ localStorage.setItem(STORAGE_KEY, JSON.stringify(list)) }
+		let services = loadServices()
+
+		const servicesListEl = document.getElementById('servicesList')
+		const totalCountEl = document.getElementById('totalCount')
+		const searchInput = document.getElementById('searchInput')
+
+		function render(filter){
+			servicesListEl.innerHTML = ''
+			const items = (filter? services.filter(s=>s.title.toLowerCase().includes(filter.toLowerCase())) : services)
+			totalCountEl.textContent = items.length
+			items.forEach(s=>{
+				const row = document.createElement('div')
+				row.className = 'service-item'
+				row.innerHTML = `
+					<div class="service-left">
+						<input type="checkbox" data-id="${s.id}" />
+						<div>
+							<div class="service-title" data-id="${s.id}" style="cursor:pointer">${s.title}</div>
+						</div>
+					</div>
+					<div class="actions">
+						<div class="service-meta">${s.date}</div>
+												<button class="trash-btn" title="Delete" data-id="${s.id}">
+													<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+														<path d="M3 6h18" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" stroke="#6b6b6b"/>
+														<path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" stroke="#6b6b6b"/>
+														<path d="M10 11v6" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" stroke="#6b6b6b"/>
+														<path d="M14 11v6" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" stroke="#6b6b6b"/>
+														<path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" stroke="#6b6b6b"/>
+													</svg>
+												</button>
+					</div>
+				`
+				servicesListEl.appendChild(row)
+			})
+
+			servicesListEl.querySelectorAll('.trash-btn[data-id]').forEach(btn=>{
+				btn.onclick = ()=>{ const id = Number(btn.getAttribute('data-id')); deleteService(id) }
+			})
+			servicesListEl.querySelectorAll('.service-title').forEach(t=>{
+				t.onclick = ()=>{ const id = Number(t.getAttribute('data-id')); editService(id) }
+			})
+		}
+
+		function addService(){
+			const title = prompt('Service title')
+			if(!title) return
+			const id = Date.now()
+			const date = new Date().toLocaleDateString()
+			services.unshift({id,title,date})
+			saveServices(services)
+			render(searchInput.value)
+		}
+
+		function deleteService(id){
+			if(!confirm('Delete this service?')) return
+			services = services.filter(s=>s.id!==id)
+			saveServices(services)
+			render(searchInput.value)
+		}
+
+		function editService(id){
+			const svc = services.find(s=>s.id===id)
+			if(!svc) return
+			const title = prompt('Update service title', svc.title)
+			if(title===null) return
+			svc.title = title
+			svc.date = new Date().toLocaleDateString()
+			saveServices(services)
+			render(searchInput.value)
+		}
+
+		document.getElementById('addBtn').addEventListener('click', addService)
+		document.getElementById('updateBtn').addEventListener('click', ()=>{
+			saveServices(services)
+			alert('Services updated')
+		})
+		document.getElementById('searchBtn').addEventListener('click', ()=> render(searchInput.value))
+		searchInput.addEventListener('input', e=> render(e.target.value))
+
+		// initial render
+		render()
+	</script>
+</body>
+</html>

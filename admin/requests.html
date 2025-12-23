@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<title>TTC - Admin Requests</title>
+	<link rel="stylesheet" href="../styles.css">
+	<style>
+		/* admin layout copied from dashboard for consistency */
+		.admin-shell{display:flex;min-height:100vh}
+		.sidebar{width:260px;background:linear-gradient(180deg,#313131,#1a1a1a);color:#fff;padding:28px 18px;display:flex;flex-direction:column;justify-content:flex-start}
+		.sidebar .sidebar-brand{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center}
+		.logo-circle img{max-width:110px;max-height:110px;display:block}
+		.brand-name{font-weight:800;font-size:14px;margin-top:6px;color:rgba(255,255,255,0.95)}
+		.sidebar-nav{display:flex;flex-direction:column;margin-top:32px;gap:8px;align-items:stretch;width:100%}
+		.sb-btn{background:transparent;border:none;color:inherit;padding:12px 14px;border-radius:8px;text-align:left;font-weight:700;cursor:pointer;transition:background .18s,transform .12s;width:100%}
+		.sb-btn:hover{background:rgba(255, 255, 255, 0.06);transform:translateX(4px)}
+		.sb-btn.active{background:rgba(255,255,255,0.12)}
+		.sidebar-bottom{margin-top:auto}
+
+		.admin-main{flex:1;padding:28px 34px;background-color:whitesmoke}
+		.admin-header h1{margin:0 0 18px 0;font-size:28px;color:#000000}
+
+		/* requests list styling */
+		.card{background:#fff;border-radius:12px;padding:20px;box-shadow:0 8px 30px rgba(4,20,20,0.04)}
+		.panel-top{display:flex;gap:16px;align-items:center;margin-bottom:18px}
+		.count{background:#595959;padding:10px 16px;border-radius:8px;font-weight:700}
+		.search{flex:1;display:flex}
+		.search input{flex:1;padding:12px 16px;border-radius:8px;border:1px solid #eef3f3;background:#fbfcfc}
+		.requests-list{margin-top:12px;border-top:1px solid #f0f3f3}
+		.request-item{display:flex;align-items:flex-start;gap:12px;padding:18px 8px;border-bottom:1px solid #f2f2f2}
+		.request-left{width:40px;display:flex;align-items:flex-start;justify-content:center;padding-top:6px}
+		.request-main{flex:1;display:flex;gap:12px;align-items:flex-start}
+		.req-sender{font-weight:800;color:#083233;white-space:normal;overflow-wrap:break-word;word-break:break-word}
+		.req-subject{color:#444}
+		.req-meta{color:#8b9aa0;font-size:13px}
+		.req-date{width:160px;color:#8b9aa0;text-align:right}
+		.reply-btn{border:1px solid #1f8f86;background:white;color:#1f8f86;padding:8px 12px;border-radius:8px;cursor:pointer}
+		.trash-btn{background:transparent;border:none;cursor:pointer;color:#333;padding:6px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;transition:background .12s}
+		.trash-btn svg{stroke:#6b6b6b}
+		.trash-btn:hover{background:rgba(31,170,161,0.06)}
+		.trash-btn:hover svg{stroke:var(--accent)}
+
+		@media (max-width:900px){.sidebar{display:none}.admin-shell{padding-left:12px;padding-right:12px}}
+	</style>
+</head>
+<body>
+	<div class="admin-shell">
+		<aside class="sidebar">
+			<div class="sidebar-top">
+				<div class="sidebar-brand">
+					<div class="logo-circle">
+						<img src="../images/TTClogo.png" alt="TTC logo" onerror="this.style.display='none'">
+					</div>
+					<div class="brand-name">Turnkey Trading &amp; Contracting</div>
+				</div>
+			</div>
+
+			<nav class="sidebar-nav">
+				<button class="sb-btn" onclick="location.href='dashboard.html'">Dashboard</button>
+				<button class="sb-btn active" onclick="location.href='requests.html'">Requests</button>
+				<button class="sb-btn" onclick="location.href='projects.html'">Projects</button>
+				<button class="sb-btn" onclick="location.href='services.html'">Services</button>
+			</nav>
+
+			<div class="sidebar-bottom">
+				<button class="sb-btn">Settings</button>
+				<button class="sb-btn logout">Logout</button>
+			</div>
+		</aside>
+
+		<main class="admin-main">
+			<header class="admin-header">
+				<h1>Requests</h1>
+			</header>
+
+			<section class="card" id="requestsCard">
+				<div class="panel-top">
+					<div class="count">Total Requests <span id="totalCount" style="margin-left:8px">0</span></div>
+					<div class="search">
+						<input id="searchInput" placeholder="Search mail" />
+						<button id="searchBtn" class="icon-btn" title="Search"></button>
+					</div>
+				</div>
+
+				<div class="requests-list" id="requestsList">
+					<!-- requests populated here -->
+				</div>
+
+			</section>
+		</main>
+	</div>
+
+	<script src="../script.js"></script>
+	<script>
+		// localStorage-based requests list with delete and reply (mailto)
+		const STORAGE_KEY = 'ttc_requests_v1'
+		const defaultRequests = [
+			{id:1,name:'test ahmed',subject:'Consultation from roi',email:'gmlzaib@gmail.com',phone:'111222333',date:'12/11/2025, 4:26:36 PM'},
+			{id:2,name:'asA',subject:'Consultation from ASDA',email:'gmlzaib@gmail.com',phone:'1231231',date:'12/7/2025, 2:04:43 PM'},
+			{id:3,name:'Royal Orbit Innovations Marketing & Advertising',subject:'Consultation from Royal Orbit Innovations For Marketing and Advertising WLL',email:'hello@roi.qa',phone:'70017941',date:'12/4/2025, 4:46:11 PM'},
+			{id:4,name:'Mubin',subject:'Consultation from Moba Bakery',email:'mubin7159@gmail.com',phone:'72526465',date:'11/6/2025, 4:26:11 PM'}
+		]
+
+		function loadRequests(){
+			const raw = localStorage.getItem(STORAGE_KEY)
+			if(!raw){ localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultRequests)); return defaultRequests }
+			try{ return JSON.parse(raw) }catch(e){ return defaultRequests }
+		}
+		function saveRequests(list){ localStorage.setItem(STORAGE_KEY, JSON.stringify(list)) }
+
+		let requests = loadRequests()
+
+		const requestsListEl = document.getElementById('requestsList')
+		const totalCountEl = document.getElementById('totalCount')
+		const searchInput = document.getElementById('searchInput')
+
+		function render(filter){
+			requestsListEl.innerHTML = ''
+			const items = (filter? requests.filter(r=>{
+				const q = filter.toLowerCase()
+				return r.name.toLowerCase().includes(q) || r.subject.toLowerCase().includes(q) || r.email.toLowerCase().includes(q)
+			}) : requests)
+			totalCountEl.textContent = items.length
+
+			items.forEach(r=>{
+				const row = document.createElement('div')
+				row.className = 'request-item'
+				row.innerHTML = `
+					<div class="request-left"><input type="checkbox" data-id="${r.id}" /></div>
+					<div class="request-main">
+						<div style="flex:0 0 220px;max-width:220px">
+							<div class="req-sender">${r.name}</div>
+						</div>
+						<div style="flex:1">
+							<div class="req-subject">${r.subject}</div>
+							<div class="req-meta">${r.email} • ${r.phone}</div>
+						</div>
+						<div class="req-date">${r.date}</div>
+						<div style="width:90px;display:flex;flex-direction:column;gap:8px;align-items:flex-end">
+														<button class="reply-btn" data-email="${r.email}">Reply</button>
+														<button class="trash-btn" title="Delete" data-id="${r.id}">
+															<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+																<path d="M3 6h18" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" stroke="#6b6b6b"/>
+																<path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" stroke="#6b6b6b"/>
+																<path d="M10 11v6" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" stroke="#6b6b6b"/>
+																<path d="M14 11v6" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" stroke="#6b6b6b"/>
+																<path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" stroke="#6b6b6b"/>
+															</svg>
+														</button>
+						</div>
+					</div>
+				`
+				requestsListEl.appendChild(row)
+			})
+
+			// attach handlers
+			requestsListEl.querySelectorAll('.trash-btn[data-id]').forEach(btn=>{
+				btn.onclick = ()=>{ const id = Number(btn.getAttribute('data-id')); deleteRequest(id) }
+			})
+			requestsListEl.querySelectorAll('.reply-btn[data-email]').forEach(btn=>{
+				btn.onclick = ()=>{ const email = btn.getAttribute('data-email'); replyTo(email) }
+			})
+		}
+
+		function deleteRequest(id){
+			if(!confirm('Delete this request?')) return
+			requests = requests.filter(r=>r.id!==id)
+			saveRequests(requests)
+			render(searchInput.value)
+		}
+
+		function replyTo(email){
+			// open default mail client
+			window.location.href = `mailto:${email}`
+		}
+
+		document.getElementById('searchBtn').addEventListener('click', ()=> render(searchInput.value))
+		searchInput.addEventListener('input', e=> render(e.target.value))
+
+		// initial render
+		render()
+	</script>
+</body>
+</html>
